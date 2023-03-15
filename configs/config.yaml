@@ -1,0 +1,10 @@
+port: 8080
+postgres:
+  login: admin
+  host: db
+  port: 5432
+  name: postgres
+kafka_input:
+  topics: [t1, t2]
+kafka_output:
+  topics: [t1, t2]
