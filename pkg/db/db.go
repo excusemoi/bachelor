@@ -2,10 +2,11 @@ package db
 
 import (
 	"github.com/go-pg/pg/v10"
+	"os"
 )
 
 type Db struct {
-	dbClient *pg.DB
+	client *pg.DB
 }
 
 func New(dbLogin, dbPass, dbHost, dbPort, dbName string) (*Db, error) {
@@ -23,8 +24,16 @@ func New(dbLogin, dbPass, dbHost, dbPort, dbName string) (*Db, error) {
 	dbClient := pg.Connect(connectOptions)
 
 	newClient := &Db{
-		dbClient: dbClient,
+		client: dbClient,
 	}
 
 	return newClient, nil
+}
+
+func GetEnv(key, def string) string {
+	e := os.Getenv(key)
+	if e == "" {
+		return def
+	}
+	return e
 }

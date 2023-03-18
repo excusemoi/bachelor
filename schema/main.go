@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/bachelor/pkg/config"
+	"github.com/bachelor/pkg/db"
 	"github.com/go-pg/pg/v10"
 	migrations "github.com/robinjoseph08/go-pg-migrations/v3"
 	"github.com/spf13/viper"
@@ -20,14 +21,14 @@ func main() {
 
 	log.Println("Migrations")
 
-	db := pg.Connect(&pg.Options{
+	conn := pg.Connect(&pg.Options{
 		User:     viper.GetString("postgres.login"),
-		Password: os.Getenv("POSTGRES_PASSWORD"),
+		Password: db.GetEnv("POSTGRES_PASSWORD", "root"),
 		Addr:     viper.GetString("postgres.host") + ":" + viper.GetString("postgres.port"),
 		Database: viper.GetString("postgres.name"),
 	})
 
-	if err = migrations.Run(db, "./", os.Args); err != nil {
+	if err = migrations.Run(conn, "./", os.Args); err != nil {
 		log.Fatal(err)
 	}
 }

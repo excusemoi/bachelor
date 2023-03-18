@@ -9,7 +9,7 @@ func init() {
 	up := func(db orm.DB) error {
 		sql := `
 			create table if not exists filter (
-                                      id integer primary key ,
+                                      id serial primary key,
                                       filter text
 			);
 		`
@@ -19,7 +19,7 @@ func init() {
 
 		sql = `
 			create table if not exists rule (
-                                    id integer primary key ,
+                                    id serial primary key,
                                     rule text
 			);
 		`
@@ -29,12 +29,13 @@ func init() {
 
 		sql = `
 			create table if not exists filtration_rule (
-				id integer primary key,
+				id serial primary key,
 				filter_id integer constraint filter_id_constraint references filter on delete cascade,
 				rule_id integer constraint rule_id_constraint references rule on delete cascade,
 				filter_field text,
 				filter_function text,
-				filter_value text
+				filter_value text,
+			    updated_at timestamp default CURRENT_TIMESTAMP
 			);
 		`
 		if _, err := db.Exec(sql); err != nil {

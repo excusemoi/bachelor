@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	github.com/go-pg/pg/v10 v10.11.0
+	github.com/robinjoseph08/go-pg-migrations/v3 v3.0.0
 	github.com/spf13/viper v1.15.0
 )
 
@@ -16,7 +17,6 @@ require (
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/imdario/mergo v0.3.8 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
-	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
@@ -25,7 +25,6 @@ require (
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.6 // indirect
-	github.com/robinjoseph08/go-pg-migrations/v3 v3.0.0 // indirect
 	github.com/russross/blackfriday/v2 v2.0.1 // indirect
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/spf13/afero v1.9.3 // indirect
