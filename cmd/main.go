@@ -1,17 +1,24 @@
 package main
 
 import (
+	"context"
 	"github.com/bachelor/pkg/config"
 	"github.com/bachelor/pkg/db"
+	"github.com/bachelor/pkg/model"
 	"github.com/spf13/viper"
 	"log"
 	"os"
+	"reflect"
+	"sync"
+	"time"
 )
 
 func main() {
 	var (
-		dbClient *db.Db
-		err      error
+		ctx, cancel = context.WithCancel(context.Background())
+		dbClient    *db.Db
+		cfr         = &model.FiltrationRule{Mx: sync.RWMutex{}}
+		err         error
 	)
 
 	if err = config.InitConfig(""); err != nil {
@@ -28,9 +35,30 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Println(dbClient)
+	handleFiltrationRuleChanges(ctx, dbClient, cfr)
 
 	for {
-
 	}
+
+	cancel()
+}
+
+func handleFiltrationRuleChanges(ctx context.Context, dbClient *db.Db, cfr *model.FiltrationRule) {
+	go func() {
+		for {
+			select {
+			case <-time.After(time.Second * 10):
+				{
+					nfr, _ := dbClient.GetLatestFiltrationRule()
+					if !reflect.DeepEqual(nfr, cfr) {
+						cfr.Mx.Lock()
+						cfr = nfr
+						cfr.Mx.Unlock()
+					}
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
 }
