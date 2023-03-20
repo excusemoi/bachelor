@@ -9,6 +9,7 @@ require (
 )
 
 require (
+	github.com/confluentinc/confluent-kafka-go v1.9.2 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
@@ -44,6 +45,7 @@ require (
 	golang.org/x/text v0.5.0 // indirect
 	golang.org/x/tools v0.1.12 // indirect
 	gopkg.in/AlecAivazis/survey.v1 v1.8.7 // indirect
+	gopkg.in/confluentinc/confluent-kafka-go.v1 v1.8.2 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/kyokomi/emoji.v1 v1.5.1 // indirect
 	gopkg.in/yaml.v2 v2.3.0 // indirect

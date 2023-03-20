@@ -34,8 +34,8 @@ func init() {
 				rule_id integer constraint rule_id_constraint references rule on delete cascade,
 				filter_field text,
 				filter_function text,
-				filter_value text,
-			    updated_at timestamp default CURRENT_TIMESTAMP
+				filter_value text
+			    updated_at Timestamp not null
 			);
 		`
 		if _, err := db.Exec(sql); err != nil {

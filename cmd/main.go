@@ -35,8 +35,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	handleFiltrationRuleChanges(ctx, dbClient, cfr)
+	go handleFiltrationRuleChanges(ctx, dbClient, cfr)
 
+	//just for loop
 	for {
 	}
 
@@ -44,21 +45,19 @@ func main() {
 }
 
 func handleFiltrationRuleChanges(ctx context.Context, dbClient *db.Db, cfr *model.FiltrationRule) {
-	go func() {
-		for {
-			select {
-			case <-time.After(time.Second * 10):
-				{
-					nfr, _ := dbClient.GetLatestFiltrationRule()
-					if !reflect.DeepEqual(nfr, cfr) {
-						cfr.Mx.Lock()
-						cfr = nfr
-						cfr.Mx.Unlock()
-					}
+	for {
+		select {
+		case <-time.After(time.Second * 10):
+			{
+				nfr, _ := dbClient.GetLatestFiltrationRule()
+				if !reflect.DeepEqual(nfr, cfr) {
+					cfr.Mx.Lock()
+					cfr = nfr
+					cfr.Mx.Unlock()
 				}
-			case <-ctx.Done():
-				return
 			}
+		case <-ctx.Done():
+			return
 		}
-	}()
+	}
 }
