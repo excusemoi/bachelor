@@ -13,15 +13,18 @@ type Client struct {
 	Filter   func(*kafka.Message, *model.FiltrationRule) (*kafka.Message, error) //must be interface with Filter() method
 }
 
-func (c *Client) New(bs string, topics []string) error {
-	var err error
+func New(bs string, topics []string) (*Client, error) {
+	var (
+		err error
+		c   = &Client{}
+	)
 	if c.Consumer, err = consumer.New(bs, topics); err != nil {
-		return err
+		return nil, err
 	}
 	if c.Producer, err = producer.New(bs); err != nil {
-		return err
+		return nil, err
 	}
-	return err
+	return c, err
 }
 
 func (c *Client) Run() {

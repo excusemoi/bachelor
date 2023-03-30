@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/bachelor/pkg/config"
 	"github.com/bachelor/pkg/db"
+	"github.com/bachelor/pkg/kafka"
 	"github.com/bachelor/pkg/model"
 	"github.com/spf13/viper"
 	"log"
@@ -17,6 +18,7 @@ func main() {
 	var (
 		ctx, cancel = context.WithCancel(context.Background())
 		dbClient    *db.Db
+		kafkaClient *kafka.Client
 		cfr         = &model.FiltrationRule{Mx: sync.RWMutex{}}
 		err         error
 	)
@@ -37,9 +39,11 @@ func main() {
 
 	go handleFiltrationRuleChanges(ctx, dbClient, cfr)
 
-	//just for loop
-	for {
+	if kafkaClient, err = kafka.New(viper.GetString("kafka.bs"), viper.GetStringSlice("kafka.topics")); err != nil {
+		log.Fatal(err)
 	}
+
+	kafkaClient.Run()
 
 	cancel()
 }

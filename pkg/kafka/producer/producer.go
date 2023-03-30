@@ -16,9 +16,8 @@ func New(bs string) (*Producer, error) {
 	)
 
 	if producer, err = kafka.NewProducer(&kafka.ConfigMap{
-		"bootstrap.servers":        bs,
-		"allow.auto.create.topics": true,
-		"acks":                     "all",
+		"bootstrap.servers": bs,
+		"acks":              "all",
 	}); err != nil {
 		return nil, err
 	}

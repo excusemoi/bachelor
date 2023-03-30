@@ -4,7 +4,6 @@ postgres:
   host: localhost
   port: 5436
   name: postgres
-kafka_input:
-  topics: [t1, t2]
-kafka_output:
-  topics: [t1, t2]
+kafka:
+  bs: localhost:9092
+  topics: [ t1, t2 ]
