@@ -1,0 +1,7 @@
+kafka:
+  bootstrapServers: localhost:9092
+  consumer:
+    groupId: filter_consumer
+    topics: [source_topic]
+  producer:
+    topics: transformation_topic

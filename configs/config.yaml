@@ -4,6 +4,4 @@ postgres:
   host: localhost
   port: 5436
   name: postgres
-kafka:
-  bs: localhost:9092
-  topics: [ t1, t2 ]
+  password: root

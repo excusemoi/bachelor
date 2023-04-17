@@ -2,13 +2,15 @@ package main
 
 import (
 	"context"
-	"github.com/bachelor/pkg/config"
-	"github.com/bachelor/pkg/db"
-	"github.com/bachelor/pkg/kafka"
-	"github.com/bachelor/pkg/model"
+	"fmt"
+	"github.com/bachelor/internal/config"
+	"github.com/bachelor/internal/db"
+	"github.com/bachelor/internal/model/filter"
+	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 	"log"
 	"os"
+	"path/filepath"
 	"reflect"
 	"sync"
 	"time"
@@ -18,37 +20,46 @@ func main() {
 	var (
 		ctx, cancel = context.WithCancel(context.Background())
 		dbClient    *db.Db
-		kafkaClient *kafka.Client
-		cfr         = &model.FiltrationRule{Mx: sync.RWMutex{}}
-		err         error
+		//kafkaClient *kafka.Client
+		vp  *viper.Viper
+		cfr = &filter.FiltrationRule{Mx: sync.RWMutex{}}
+		err error
 	)
 
-	if err = config.InitConfig(""); err != nil {
+	if err = godotenv.Load(filepath.Join(".env")); err != nil {
+		log.Fatal(err)
+	}
+
+	if vp, err = config.InitConfig("configs", "config"); err != nil {
 		log.Fatal(err)
 	}
 
 	if dbClient, err = db.New(
-		viper.GetString("postgres.login"),
+		vp.GetString("postgres.login"),
 		os.Getenv("POSTGRES_PASSWORD"),
-		viper.GetString("postgres.host"),
-		viper.GetString("postgres.port"),
-		viper.GetString("postgres.name"),
+		vp.GetString("postgres.host"),
+		vp.GetString("postgres.port"),
+		vp.GetString("postgres.name"),
 	); err != nil {
 		log.Fatal(err)
 	}
 
-	go handleFiltrationRuleChanges(ctx, dbClient, cfr)
+	go handleFiltrationRuleChanges(ctx, dbClient, cfr) //TODO observer must be defined in every component
 
-	if kafkaClient, err = kafka.New(viper.GetString("kafka.bs"), viper.GetStringSlice("kafka.topics")); err != nil {
-		log.Fatal(err)
+	//if kafkaClient, err = kafka.New(viper.GetString("kafka.bs"), viper.GetStringSlice("kafka.topics")); err != nil {
+	//	log.Fatal(err)
+	//}
+	//
+	//kafkaClient.Run()
+
+	fmt.Println("Server started")
+	for {
 	}
-
-	kafkaClient.Run()
 
 	cancel()
 }
 
-func handleFiltrationRuleChanges(ctx context.Context, dbClient *db.Db, cfr *model.FiltrationRule) {
+func handleFiltrationRuleChanges(ctx context.Context, dbClient *db.Db, cfr *filter.FiltrationRule) {
 	for {
 		select {
 		case <-time.After(time.Second * 10):

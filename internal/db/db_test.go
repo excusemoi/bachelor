@@ -2,53 +2,51 @@ package db
 
 import (
 	"fmt"
-	"github.com/bachelor/pkg/config"
-	"github.com/bachelor/pkg/model"
+	"github.com/bachelor/internal/config"
+	"github.com/bachelor/internal/model/filter"
 	"github.com/spf13/viper"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestDb(t *testing.T) {
 	var (
 		client *Db
+		vp     *viper.Viper
 		err    error
 	)
-	if err = config.InitConfig(filepath.Join("..", "..")); err != nil {
+	if vp, err = config.InitConfig(filepath.Join("..", "..", "configs"), "config"); err != nil {
 		t.Error(err)
 	}
 	if client, err = New(
-		viper.GetString("postgres.login"),
+		vp.GetString("postgres.login"),
 		GetEnv("POSTGRES_PASSWORD", "root"),
-		viper.GetString("postgres.host"),
-		viper.GetString("postgres.port"),
-		viper.GetString("postgres.name"),
+		vp.GetString("postgres.host"),
+		vp.GetString("postgres.port"),
+		vp.GetString("postgres.name"),
 	); err != nil {
 		t.Error(err)
 	}
 
-	filters := []*model.Filter{
+	filters := []*filter.Filter{
 		{Filter: "filter1"},
 		{Filter: "filter2"},
 		{Filter: "filter3"},
 	}
-	rules := []*model.Rule{
-		{Rule: "rule1"},
-		{Rule: "rule2"},
-		{Rule: "rule3"},
-	}
-	filtrationRules := []*model.FiltrationRule{
+	filtrationRules := []*filter.FiltrationRule{
 		{
 			Filter:         filters[0],
-			Rule:           rules[0],
 			FilterField:    "field1",
 			FilterFunction: "function1",
 			FilterValue:    "value1",
+			UpdatedAt:      time.Now().Add(time.Second * 5),
 		},
 		{
 			FilterField:    "field2",
 			FilterFunction: "function2",
 			FilterValue:    "value2",
+			UpdatedAt:      time.Now(),
 		},
 	}
 
@@ -61,20 +59,9 @@ func TestDb(t *testing.T) {
 		t.Log(fmt.Sprintf("filter created successfully: id = %d", filters[0].Id))
 	})
 
-	t.Run("create_rule", func(t2 *testing.T) {
-		err := client.CreateRule(rules[0])
-		if err != nil {
-			t.Error(err)
-			return
-		}
-		t.Log(fmt.Sprintf("filter created successfully: id = %d", rules[0].Id))
-
-	})
-
 	t.Run("create_filtration_rule", func(t2 *testing.T) {
 		err := client.CreateFiltrationRule(filtrationRules[0])
 		t2.Log(filtrationRules[0].Filter)
-		t2.Log(filtrationRules[0].Rule)
 		if err != nil {
 			t2.Error(err)
 			return

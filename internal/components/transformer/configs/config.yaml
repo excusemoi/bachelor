@@ -1,0 +1,7 @@
+kafka:
+  bootstrapServers: localhost:9092
+  consumer:
+    groupId: transformer_consumer
+    topics: [transformation_topic]
+  producer:
+    topics: deduplication_topic
