@@ -1,78 +1,61 @@
 package main
 
 import (
-	"context"
-	"fmt"
-	"github.com/bachelor/internal/config"
-	"github.com/bachelor/internal/db"
-	"github.com/bachelor/internal/model/filter"
-	"github.com/joho/godotenv"
-	"github.com/spf13/viper"
+	"github.com/bachelor/internal/components"
+	"github.com/bachelor/internal/components/actor"
+	"github.com/bachelor/internal/components/deduplicator"
+	"github.com/bachelor/internal/components/enricher"
+	"github.com/bachelor/internal/components/filter"
+	"github.com/bachelor/internal/components/source"
+	"github.com/bachelor/internal/components/transformer"
+	"github.com/bachelor/internal/migrations"
+	"github.com/bachelor/internal/model"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
-	"os"
+	"net/http"
 	"path/filepath"
-	"reflect"
 	"sync"
-	"time"
 )
 
 func main() {
-	var (
-		ctx, cancel = context.WithCancel(context.Background())
-		dbClient    *db.Db
-		//kafkaClient *kafka.Client
-		vp  *viper.Viper
-		cfr = &filter.FiltrationRule{Mx: sync.RWMutex{}}
-		err error
-	)
+	var err error
 
-	if err = godotenv.Load(filepath.Join(".env")); err != nil {
+	if err = migrations.Run(); err != nil {
 		log.Fatal(err)
 	}
 
-	if vp, err = config.InitConfig("configs", "config"); err != nil {
+	ac := &components.AbstractComponent[model.AbstractRule]{Wg: &sync.WaitGroup{}}
+	src := &source.Source{}
+	fl := &filter.Filter{}
+	tf := &transformer.Transformer{}
+	dd := &deduplicator.Deduplicator{}
+	enr := &enricher.Enricher{}
+	act := &actor.Actor{}
+
+	if err = src.Init(filepath.Join("internal", "components", "source", "configs")); err != nil {
+		log.Fatal(err)
+	}
+	if err = tf.Init(filepath.Join("internal", "components", "transformer", "configs")); err != nil {
+		log.Fatal(err)
+	}
+	if err = fl.Init(filepath.Join("internal", "components", "filter", "configs")); err != nil {
+		log.Fatal(err)
+	}
+	if err = dd.Init(filepath.Join("internal", "components", "deduplicator", "configs")); err != nil {
+		log.Fatal(err)
+	}
+	if err = enr.Init(filepath.Join("internal", "components", "enricher", "configs")); err != nil {
+		log.Fatal(err)
+	}
+	if err = act.Init(filepath.Join("internal", "components", "actor", "configs"), func(s string) string { return s }); err != nil {
 		log.Fatal(err)
 	}
 
-	if dbClient, err = db.New(
-		vp.GetString("postgres.login"),
-		os.Getenv("POSTGRES_PASSWORD"),
-		vp.GetString("postgres.host"),
-		vp.GetString("postgres.port"),
-		vp.GetString("postgres.name"),
-	); err != nil {
-		log.Fatal(err)
-	}
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		http.ListenAndServe("bachelor-app:8081", nil)
+	}()
 
-	go handleFiltrationRuleChanges(ctx, dbClient, cfr) //TODO observer must be defined in every component
-
-	//if kafkaClient, err = kafka.New(viper.GetString("kafka.bs"), viper.GetStringSlice("kafka.topics")); err != nil {
-	//	log.Fatal(err)
-	//}
-	//
-	//kafkaClient.Run()
-
-	fmt.Println("Server started")
-	for {
-	}
-
-	cancel()
-}
-
-func handleFiltrationRuleChanges(ctx context.Context, dbClient *db.Db, cfr *filter.FiltrationRule) {
-	for {
-		select {
-		case <-time.After(time.Second * 10):
-			{
-				nfr, _ := dbClient.GetLatestFiltrationRule()
-				if !reflect.DeepEqual(nfr, cfr) {
-					cfr.Mx.Lock()
-					cfr = nfr
-					cfr.Mx.Unlock()
-				}
-			}
-		case <-ctx.Done():
-			return
-		}
-	}
+	ac.SetNext(src).SetNext(fl).SetNext(tf).SetNext(dd).SetNext(enr).SetNext(act)
+	ac.RunPipeline()
 }

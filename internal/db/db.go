@@ -1,29 +1,42 @@
 package db
 
 import (
+	"github.com/bachelor/internal/model"
 	"github.com/go-pg/pg/v10"
+	"github.com/spf13/viper"
 	"os"
+	"sync"
 )
 
-type Db struct {
-	client *pg.DB
+type Model interface {
+	model.FiltrationRule |
+		model.TransformationRule |
+		model.DeduplicationRule |
+		model.EnrichmentRule |
+		model.ActionRule |
+		model.AbstractRule
 }
 
-func New(dbLogin, dbPass, dbHost, dbPort, dbName string) (*Db, error) {
+type Db[T Model] struct {
+	client *pg.DB
+	mx     sync.Mutex
+}
+
+func (db *Db[T]) Init(vp *viper.Viper) (*Db[T], error) {
 
 	connectOptions, err := pg.ParseURL("postgres://" +
-		dbLogin + ":" +
-		dbPass + "@" +
-		dbHost + ":" +
-		dbPort + "/" +
-		dbName + "?sslmode=disable")
+		vp.GetString("postgres.login") + ":" +
+		GetEnv("POSTGRES_PASSWORD", "root") + "@" +
+		vp.GetString("postgres.host") + ":" +
+		vp.GetString("postgres.port") + "/" +
+		vp.GetString("postgres.name") + "?sslmode=disable")
 	if err != nil {
 		return nil, err
 	}
 
 	dbClient := pg.Connect(connectOptions)
 
-	newClient := &Db{
+	newClient := &Db[T]{
 		client: dbClient,
 	}
 

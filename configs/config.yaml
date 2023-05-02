@@ -1,7 +1,9 @@
 port: 8080
 postgres:
   login: admin
-  host: localhost
-  port: 5436
+  host: db
+  port: 5432
   name: postgres
   password: root
+prometheus:
+  port: 8081

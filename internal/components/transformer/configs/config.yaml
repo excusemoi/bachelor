@@ -1,7 +1,23 @@
+port: 8080
+postgres:
+  login: admin
+  host: db
+  port: 5432
+  name: postgres
+  password: root
+
 kafka:
-  bootstrapServers: localhost:9092
+  bootstrapServers: bachelor-kafka:9092
   consumer:
     groupId: transformer_consumer
-    topics: [transformation_topic]
+    topics: [transformer_topic]
   producer:
-    topics: deduplication_topic
+    topics: deduplicator_topic
+  metrics:
+    prefix: transformer
+    latency: true
+    lag: true
+    inputMessagesPerSec:
+      duration: 5s
+    outputMessagesPerSec:
+      duration: 5s

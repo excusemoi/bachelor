@@ -2,25 +2,30 @@ package components
 
 import (
 	"github.com/bachelor/internal/config"
+	"github.com/bachelor/internal/db"
 	"github.com/bachelor/internal/kafka"
 	"github.com/spf13/viper"
+	"sync"
 )
 
 type IComponent interface {
 	Run()
 	GetConsumerTopics() []string
 	SetProducerTopics([]string)
-	Handle(message []byte) error
+	Handle(message []byte) ([]byte, error)
 	GetNext() IComponent
+	SetNext(next IComponent) IComponent
 }
 
-type AbstractComponent struct {
-	IComponent
+type AbstractComponent[T db.Model] struct {
 	Next  IComponent
 	Kafka *kafka.Client
+	Db    *db.Db[T]
+	Rule  *T
+	Wg    *sync.WaitGroup
 }
 
-func (ac *AbstractComponent) Init(configPath string) error {
+func (ac *AbstractComponent[T]) Init(configPath string) error {
 	var (
 		vp  *viper.Viper
 		err error
@@ -28,39 +33,54 @@ func (ac *AbstractComponent) Init(configPath string) error {
 	if vp, err = config.InitConfig(configPath, "config"); err != nil {
 		return err
 	}
+
 	ac.Kafka = &kafka.Client{}
 	ac.Kafka.Init(vp)
+
+	ac.Db = &db.Db[T]{}
+
+	if ac.Db, err = ac.Db.Init(vp); err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (ac *AbstractComponent) SetNext(next IComponent) {
+func (ac *AbstractComponent[T]) SetNext(next IComponent) IComponent {
 	if ac.Kafka != nil {
 		ac.SetProducerTopics(next.GetConsumerTopics())
 	}
 	ac.Next = next
-}
-
-func (ac *AbstractComponent) GetNext() IComponent {
 	return ac.Next
 }
 
-func (ac *AbstractComponent) RunPipeline() {
-	curr := ac.Next
-	for curr != nil {
-		curr.Run()
-		curr = curr.GetNext()
-	}
+func (ac *AbstractComponent[T]) GetNext() IComponent {
+	return ac.Next
 }
 
-func (ac *AbstractComponent) SetProducerTopics(topics []string) {
+func (ac *AbstractComponent[T]) RunPipeline() {
+	curr := ac.Next
+	for curr != nil {
+		ac.Wg.Add(1)
+		go curr.Run()
+		curr = curr.GetNext()
+	}
+	ac.Wg.Wait()
+}
+
+func (ac *AbstractComponent[T]) Observe() {
+	ac.Db.Observe((*T)(nil))
+}
+
+func (ac *AbstractComponent[T]) SetProducerTopics(topics []string) {
 	if ac.Kafka != nil {
 		ac.Kafka.SetProducerTopics(topics)
 	}
 }
 
-func (ac *AbstractComponent) GetConsumerTopics() []string {
+func (ac *AbstractComponent[T]) GetConsumerTopics() []string {
 	if ac.Kafka != nil {
 		return ac.Kafka.GetConsumerTopics()
 	}
-	return []string{}
+	return nil
 }

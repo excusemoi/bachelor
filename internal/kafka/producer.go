@@ -34,6 +34,15 @@ func (p *producer) produce(message []byte) error {
 	return p.writer.WriteMessages(p.ctx, messages...)
 }
 
+func (p *producer) produceToTopic(message []byte, topic string) error {
+	m := []kafka.Message{{Topic: topic, Value: message, Partition: 0}}
+	return p.writer.WriteMessages(p.ctx, m...)
+}
+
 func (p *producer) setTopics(topics []string) {
 	p.topics = topics
+}
+
+func (p *producer) setBootstrapServers(address []string) {
+	p.writer.Addr = kafka.TCP(address...)
 }

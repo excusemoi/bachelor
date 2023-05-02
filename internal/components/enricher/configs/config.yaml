@@ -5,15 +5,16 @@ postgres:
   port: 5432
   name: postgres
   password: root
+
 kafka:
   bootstrapServers: bachelor-kafka:9092
   consumer:
-    groupId: filter_consumer
-    topics: [filter_topic]
+    groupId: enricher_consumer
+    topics: [enricher_topic]
   producer:
-    topics: transformer_topic
+    topics: actor_topic
   metrics:
-    prefix: filter
+    prefix: enricher
     latency: true
     lag: true
     inputMessagesPerSec:
