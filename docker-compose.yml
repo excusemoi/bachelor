@@ -3,7 +3,6 @@ version: "3.8"
 services:
   db:
     container_name: bachelor-db
-    restart: always
     image: postgres:latest
     networks:
       - kafka_network
@@ -14,6 +13,18 @@ services:
       - "5436:5432"
     volumes:
       - .database:/var/lib/postgres
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U admin -d postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    deploy:
+        resources:
+          limits:
+            cpus: '1'
+            memory: 4G
   bachelor-app:
     container_name: bachelor-app
     build: ./
@@ -22,8 +33,10 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - db
-      - kafka
+      db:
+        condition: service_healthy
+      kafka:
+        condition: service_started
     environment:
       - POSTGRES_PASSWORD=root
   zookeeper:
@@ -59,10 +72,30 @@ services:
       KAFKA_JMX_PORT: 31001
   prometheus:
     image: prom/prometheus:v2.40.4
+    networks:
+      - kafka_network
+    depends_on:
+      - bachelor-app
     ports:
       - 9090:9090
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+  grafana:
+    image: grafana/grafana:9.3.0
+    networks:
+      - kafka_network
+    depends_on:
+      - prometheus
+    ports:
+      - 3000:3000
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=root
+    volumes:
+      - ./grafana/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+      - grafana:/var/lib/grafana
+volumes:
+  grafana:
 
 networks:
   kafka_network:

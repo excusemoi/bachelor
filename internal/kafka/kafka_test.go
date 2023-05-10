@@ -15,7 +15,7 @@ func TestKafka(t *testing.T) {
 		err error
 	)
 
-	if vp, err = config.InitConfig(filepath.Join("..", "components", "source", "configs"), "config"); err != nil {
+	if vp, err = config.InitConfig(filepath.Join("..", "components", "source", "configs"), "config-local"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -31,5 +31,4 @@ func TestKafka(t *testing.T) {
 		}
 		return bytes, nil
 	})
-
 }

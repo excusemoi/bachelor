@@ -23,6 +23,15 @@ func (db *Db[T]) GetLatest(model *T) (*T, error) {
 	return model, nil
 }
 
+func (db *Db[T]) GetAll(model *[]*T) (*[]*T, error) {
+	if model != nil && len(*model) != 0 {
+		if err := db.client.Model((*model)[0]).Select(model); err != nil {
+			return nil, err
+		}
+	}
+	return model, nil
+}
+
 func (db *Db[T]) GetByID(id int) (*T, error) {
 	var fr T
 	err := db.client.Model(&fr).Where("id = ?", id).Select()

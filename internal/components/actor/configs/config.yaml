@@ -16,8 +16,11 @@ kafka:
   metrics:
     prefix: actor
     latency: true
+    filtrationParams: true
     lag: true
     inputMessagesPerSec:
-      duration: 5s
+      count: true
+      
     outputMessagesPerSec:
-      duration: 5s
+      count: true
+      

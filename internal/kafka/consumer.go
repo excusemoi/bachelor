@@ -16,9 +16,10 @@ func (c *consumer) Init(ctx context.Context, vp *viper.Viper) {
 	c.ctx = ctx
 	c.topics = vp.GetStringSlice("kafka.consumer.topics")
 	c.group = make([]*kafka.Reader, len(c.topics))
+	bootstrapServers := vp.GetStringSlice("kafka.bootstrapServers")
 	for i := range c.topics {
 		c.group[i] = kafka.NewReader(kafka.ReaderConfig{
-			Brokers:   vp.GetStringSlice("kafka.bootstrapServers"),
+			Brokers:   bootstrapServers,
 			GroupID:   vp.GetString("kafka.consumer.groupId"),
 			Topic:     c.topics[i],
 			Partition: 0,

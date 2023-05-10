@@ -10,29 +10,16 @@ type Metrics struct {
 	lag                  *Metric
 	inputMessagesPerSec  *Metric
 	outputMessagesPerSec *Metric
+	filtrationParams     *Metric
 }
 
 type Metric struct {
-	count    bool
-	value    int64
-	duration time.Duration
-	m        prometheus.Gauge
-}
-
-func (mps *Metric) Observe(handler func()) {
-	if mps.duration != 0 {
-		for {
-			select {
-			case <-time.After(mps.duration):
-				{
-					handler()
-				}
-			}
-		}
-	}
+	count bool
+	value int64
+	start time.Time
+	m     prometheus.Gauge
 }
 
 func (mps *Metric) messagePerSecondHandler() {
-	mps.m.Set(float64(mps.value) / mps.duration.Seconds())
-	mps.value = 0
+	//mps.m.Set(float64(mps.value) / mps.start.Seconds())
 }

@@ -1,0 +1,7 @@
+kafka:
+  bootstrapServers: localhost:29092
+  consumer:
+    groupId: generator_consumer
+    topics: [generator_topic]
+  producer:
+    topics: source_topic

@@ -16,7 +16,10 @@ kafka:
     prefix: filter
     latency: true
     lag: true
+    filtrationParams: true
     inputMessagesPerSec:
-      duration: 5s
+      count: true
+      
     outputMessagesPerSec:
-      duration: 5s
+      count: true
+      

@@ -17,6 +17,7 @@ func (p *producer) Init(ctx context.Context, vp *viper.Viper) {
 	p.topics = vp.GetStringSlice("kafka.producer.topics")
 	p.writer = &kafka.Writer{
 		Addr:                   kafka.TCP(vp.GetStringSlice("kafka.bootstrapServers")...),
+		Async:                  true,
 		Balancer:               &kafka.LeastBytes{},
 		AllowAutoTopicCreation: true,
 	}

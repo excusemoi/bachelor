@@ -12,8 +12,8 @@ type Source struct {
 	components.AbstractComponent[model.AbstractRule]
 }
 
-func (s *Source) Init(configPath string) error {
-	if err := s.AbstractComponent.Init(configPath); err != nil {
+func (s *Source) Init(path, name string) error {
+	if err := s.AbstractComponent.Init(path, name); err != nil {
 		return err
 	}
 	return nil

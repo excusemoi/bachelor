@@ -20,79 +20,116 @@ type Client struct {
 func (c *Client) Init(config *viper.Viper) {
 	c.ctx = context.Background()
 	prefix := config.GetString("kafka.metrics.prefix")
+	fmt.Println(config.GetString("kafka.metrics.prefix"))
 
-	c.metrics = &Metrics{
-		latency: &Metric{m: promauto.NewGauge(prometheus.GaugeOpts{
-			Name: prefix + "_kafka_messages_latency",
-			Help: "time duration between message appeared in kafka topic and obtained by component",
-		}),
-		},
-		lag: &Metric{m: promauto.NewGauge(prometheus.GaugeOpts{
-			Name: prefix + "_kafka_lag",
-			Help: "amount of messages for consumer group which are waiting for processing",
-		})},
-		inputMessagesPerSec: &Metric{m: promauto.NewGauge(prometheus.GaugeOpts{
-			Name: prefix + "_kafka_messages_input_per_second",
-			Help: "amount of input messages",
-		})},
-		outputMessagesPerSec: &Metric{m: promauto.NewGauge(prometheus.GaugeOpts{
-			Name: prefix + "_kafka_messages_output_per_second",
-			Help: "amount of output messages",
-		})},
+	if config.Get("kafka.metrics") != nil {
+		c.metrics = &Metrics{
+			latency:              &Metric{},
+			lag:                  &Metric{},
+			inputMessagesPerSec:  &Metric{},
+			outputMessagesPerSec: &Metric{},
+			filtrationParams:     &Metric{},
+		}
+		c.metrics.latency.count = config.GetBool("kafka.metrics.latency")
+		if c.metrics.latency.count {
+			c.metrics.latency.m = promauto.NewGauge(
+				prometheus.GaugeOpts{
+					Name: prefix + "_kafka_messages_latency",
+					Help: "time start between message appeared in kafka topic and obtained by component",
+				})
+		}
+
+		c.metrics.lag.count = config.GetBool("kafka.metrics.lag")
+		if c.metrics.lag.count {
+			c.metrics.lag.m = promauto.NewGauge(prometheus.GaugeOpts{
+				Name: prefix + "_kafka_lag",
+				Help: "amount of messages for consumer group which are waiting for processing",
+			})
+		}
+
+		c.metrics.filtrationParams.count = config.GetBool("kafka.metrics.filtrationParams")
+		if c.metrics.filtrationParams.count {
+			c.metrics.filtrationParams.m = promauto.NewGauge(prometheus.GaugeOpts{
+				Name: prefix + "_kafka_filtration_params",
+				Help: "amount of filtration params",
+			})
+		}
+
+		c.metrics.inputMessagesPerSec.count = config.GetBool("kafka.metrics.inputMessagesPerSec.count")
+		if c.metrics.inputMessagesPerSec.count {
+			c.metrics.inputMessagesPerSec.m = promauto.NewGauge(prometheus.GaugeOpts{
+				Name: prefix + "_kafka_messages_input_per_second",
+				Help: "amount of input messages",
+			})
+		}
+
+		c.metrics.outputMessagesPerSec.count = config.GetBool("kafka.metrics.outputMessagesPerSec.count")
+		if c.metrics.outputMessagesPerSec.count {
+			c.metrics.outputMessagesPerSec.m = promauto.NewGauge(prometheus.GaugeOpts{
+				Name: prefix + "_kafka_messages_output_per_second",
+				Help: "amount of output messages",
+			})
+		}
 	}
 	c.consumer = &consumer{}
 	c.producer = &producer{}
 	c.producer.Init(c.ctx, config)
 	c.consumer.Init(c.ctx, config)
-
-	c.metrics.latency.count = config.GetBool("kafka.metrics.latency")
-	c.metrics.lag.count = config.GetBool("kafka.metrics.lag")
-	c.metrics.inputMessagesPerSec.duration = config.GetDuration("kafka.metrics.inputMessagesPerSec.duration")
-	c.metrics.outputMessagesPerSec.duration = config.GetDuration("kafka.metrics.outputMessagesPerSec.duration")
 }
 
 func (c *Client) HandleEvents(handler func([]byte) ([]byte, error)) {
 	wg := sync.WaitGroup{}
-
 	if c.consumer != nil {
-		if c.metrics.inputMessagesPerSec.duration != 0 {
-			go c.metrics.inputMessagesPerSec.Observe(c.metrics.inputMessagesPerSec.messagePerSecondHandler)
-		}
-		if c.metrics.outputMessagesPerSec.duration != 0 {
-			go c.metrics.outputMessagesPerSec.Observe(c.metrics.outputMessagesPerSec.messagePerSecondHandler)
-		}
 		wg.Add(len(c.consumer.group))
+		if c.metrics.inputMessagesPerSec.count {
+			c.metrics.inputMessagesPerSec.start = time.Now()
+		}
+		if c.metrics.outputMessagesPerSec.count {
+			c.metrics.outputMessagesPerSec.start = time.Now()
+		}
 		for i := range c.consumer.group {
 			go func(ind int) {
+				buff := make(chan struct{}, 1000000)
 				for {
 					message, err := c.consumer.group[ind].FetchMessage(c.ctx)
+
+					fmt.Println("message: ", message)
+
 					if err != nil {
 						wg.Done()
-						break
+						return
 					}
-
-					fmt.Println("message: ", string(message.Value))
 
 					if c.metrics.lag.count {
 						c.metrics.lag.m.Set(float64(c.GetConsumerGroupLag()))
 					}
 					if c.metrics.latency.count {
-						c.metrics.latency.m.Set(float64(time.Now().Sub(message.Time)))
+						latency := float64(time.Now().Sub(message.Time).Milliseconds())
+						if latency < 100. {
+							c.metrics.latency.m.Set(latency)
+
+						}
 					}
-					if c.metrics.inputMessagesPerSec.duration != 0 {
+					if c.metrics.inputMessagesPerSec.count {
 						c.metrics.inputMessagesPerSec.value++
+						c.metrics.inputMessagesPerSec.m.Set(float64(c.metrics.inputMessagesPerSec.value) /
+							time.Now().Sub(c.metrics.inputMessagesPerSec.start).Seconds())
 					}
 
 					if handler != nil {
+						buff <- struct{}{}
 						go func() {
 							newMessage, err := handler(message.Value)
 							c.consumer.group[ind].CommitMessages(c.ctx, message)
 							if err == nil {
 								c.producer.produce(newMessage)
-								if c.metrics.outputMessagesPerSec.duration != 0 {
+								if c.metrics.outputMessagesPerSec.count {
 									c.metrics.outputMessagesPerSec.value++
+									c.metrics.outputMessagesPerSec.m.Set(float64(c.metrics.outputMessagesPerSec.value) /
+										time.Now().Sub(c.metrics.outputMessagesPerSec.start).Seconds())
 								}
 							}
+							<-buff
 						}()
 					}
 				}
@@ -126,7 +163,10 @@ func (c *Client) GetConsumerGroupLag() int64 {
 	lag := int64(0)
 	if c.consumer != nil {
 		for i := range c.consumer.group {
-			lag += c.consumer.group[i].Lag()
+			l := c.consumer.group[i].Stats().Lag
+			if l < 30000000 {
+				lag += l
+			}
 		}
 	}
 	return lag

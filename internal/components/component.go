@@ -21,23 +21,28 @@ type AbstractComponent[T db.Model] struct {
 	Next  IComponent
 	Kafka *kafka.Client
 	Db    *db.Db[T]
-	Rule  *T
+	Rules []*T
 	Wg    *sync.WaitGroup
 }
 
-func (ac *AbstractComponent[T]) Init(configPath string) error {
+func (ac *AbstractComponent[T]) Init(path string, name string) error {
 	var (
 		vp  *viper.Viper
 		err error
 	)
-	if vp, err = config.InitConfig(configPath, "config"); err != nil {
+	if vp, err = config.InitConfig(path, name); err != nil {
 		return err
 	}
 
 	ac.Kafka = &kafka.Client{}
 	ac.Kafka.Init(vp)
 
+	ac.Rules = []*T{}
+
 	ac.Db = &db.Db[T]{}
+	if _, err = ac.Db.GetAll(&ac.Rules); err != nil {
+		return err
+	}
 
 	if ac.Db, err = ac.Db.Init(vp); err != nil {
 		return err

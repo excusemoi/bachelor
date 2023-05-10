@@ -16,7 +16,7 @@ func TestDb(t *testing.T) {
 		vp     *viper.Viper
 		err    error
 	)
-	if vp, err = config.InitConfig(filepath.Join("..", "..", "configs"), "config"); err != nil {
+	if vp, err = config.InitConfig(filepath.Join("..", "..", "configs"), "config-local"); err != nil {
 		t.Error(err)
 	}
 	if client, err = client.Init(vp); err != nil {
@@ -56,6 +56,18 @@ func TestDb(t *testing.T) {
 			return
 		}
 		t2.Log("Filtration rule.id:" + fr.Value)
+	})
+
+	t.Run("get_all", func(t2 *testing.T) {
+		var fr = &[]*model.FiltrationRule{}
+		_, err = client.GetAll(fr)
+		if err != nil {
+			t2.Error(err)
+			return
+		}
+		if fr != nil {
+			t2.Log(len(*fr))
+		}
 	})
 
 	//t.Run("get_filtration_rule", func(t2 *testing.T) {

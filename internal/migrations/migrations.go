@@ -56,7 +56,7 @@ func Run() error {
 	}
 
 	deduplicationRule := &model.DeduplicationRule{
-		Field: "",
+		Field: "deduplication_field",
 		Value: map[string]struct{}{"deduplication_value": {}},
 		Start: time.Now(),
 		End:   time.Now().Add(time.Hour * 24),

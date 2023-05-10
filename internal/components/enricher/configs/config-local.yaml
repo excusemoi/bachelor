@@ -1,13 +1,13 @@
 port: 8080
 postgres:
   login: admin
-  host: db
-  port: 5432
+  host: localhost
+  port: 5436
   name: postgres
   password: root
 
 kafka:
-  bootstrapServers: bachelor-kafka:9092
+  bootstrapServers: localhost:29092
   consumer:
     groupId: enricher_consumer
     topics: [enricher_topic]
@@ -16,7 +16,6 @@ kafka:
   metrics:
     prefix: enricher
     latency: true
-    filtrationParams: true
     lag: true
     inputMessagesPerSec:
       count: true

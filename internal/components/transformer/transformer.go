@@ -13,34 +13,32 @@ type Transformer struct {
 	components.AbstractComponent[model.TransformationRule]
 }
 
-func (t *Transformer) Init(configPath string) error {
-	if err := t.AbstractComponent.Init(configPath); err != nil {
-		return err
-	}
-	t.Rule = &model.TransformationRule{}
-	if _, err := t.AbstractComponent.Db.GetLatest(t.Rule); err != nil {
-		return err
-	}
-	return nil
+func (t *Transformer) Init(path string, name string) error {
+	return t.AbstractComponent.Init(path, name)
 }
 
 func (t *Transformer) Handle(message []byte) ([]byte, error) {
-	m := map[string]interface{}{}
-	if err := json.Unmarshal(message, &m); err != nil {
+	var (
+		res []byte
+		m   = map[string]interface{}{}
+		err error
+	)
+	if err = json.Unmarshal(message, &m); err != nil {
 		return nil, errors.New("transformer: can't unmarshall message")
 	}
-	if v, in := m[t.Rule.Field]; in {
-		m[t.Rule.TargetField] = v
-		delete(m, t.Rule.Field)
-	} else {
-		return nil, errors.New(fmt.Sprintf(`transformer: no field %s in message %s`, t.Rule.Field,
-			string(message)))
+	for _, rule := range t.Rules {
+		if v, in := m[rule.Field]; in {
+			m[rule.TargetField] = v
+			delete(m, rule.Field)
+		} else {
+			return nil, errors.New(fmt.Sprintf(`transformer: no field %s in message %s`, rule.Field,
+				string(message)))
+		}
+		if res, err = json.Marshal(&m); err != nil {
+			return nil, errors.New("transformer: can't marshal message")
+		}
 	}
-	if res, err := json.Marshal(&m); err != nil {
-		return nil, errors.New("transformer: can't marshal message")
-	} else {
-		return res, nil
-	}
+	return res, err
 }
 
 func (t *Transformer) Run() {

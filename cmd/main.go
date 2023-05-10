@@ -8,9 +8,11 @@ import (
 	"github.com/bachelor/internal/components/filter"
 	"github.com/bachelor/internal/components/source"
 	"github.com/bachelor/internal/components/transformer"
+	"github.com/bachelor/internal/config"
 	"github.com/bachelor/internal/migrations"
 	"github.com/bachelor/internal/model"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/spf13/viper"
 	"log"
 	"net/http"
 	"path/filepath"
@@ -18,42 +20,61 @@ import (
 )
 
 func main() {
-	var err error
+	var (
+		ac         = &components.AbstractComponent[model.AbstractRule]{Wg: &sync.WaitGroup{}}
+		src        = &source.Source{}
+		fl         = &filter.Filter{}
+		tf         = &transformer.Transformer{}
+		dd         = &deduplicator.Deduplicator{}
+		enr        = &enricher.Enricher{}
+		act        = &actor.Actor{}
+		configName = "config"
+		cfg        = &viper.Viper{}
+		err        error
+	)
+
+	if cfg, err = config.InitConfig("configs", configName); err != nil {
+		log.Println("config")
+		log.Fatal(err)
+	}
 
 	if err = migrations.Run(); err != nil {
+		log.Println("migrations")
 		log.Fatal(err)
 	}
 
-	ac := &components.AbstractComponent[model.AbstractRule]{Wg: &sync.WaitGroup{}}
-	src := &source.Source{}
-	fl := &filter.Filter{}
-	tf := &transformer.Transformer{}
-	dd := &deduplicator.Deduplicator{}
-	enr := &enricher.Enricher{}
-	act := &actor.Actor{}
-
-	if err = src.Init(filepath.Join("internal", "components", "source", "configs")); err != nil {
+	if err = src.Init(filepath.Join("internal", "components", "source", "configs"), configName); err != nil {
+		log.Println("source")
 		log.Fatal(err)
 	}
-	if err = tf.Init(filepath.Join("internal", "components", "transformer", "configs")); err != nil {
+	if err = tf.Init(filepath.Join("internal", "components", "transformer", "configs"), configName); err != nil {
+		log.Println("transformer")
 		log.Fatal(err)
 	}
-	if err = fl.Init(filepath.Join("internal", "components", "filter", "configs")); err != nil {
+	if err = fl.Init(filepath.Join("internal", "components", "filter", "configs"), configName); err != nil {
+		log.Println("filter")
 		log.Fatal(err)
 	}
-	if err = dd.Init(filepath.Join("internal", "components", "deduplicator", "configs")); err != nil {
+	if err = dd.Init(filepath.Join("internal", "components", "deduplicator", "configs"), configName); err != nil {
+		log.Println("deduplicator")
 		log.Fatal(err)
 	}
-	if err = enr.Init(filepath.Join("internal", "components", "enricher", "configs")); err != nil {
+	if err = enr.Init(filepath.Join("internal", "components", "enricher", "configs"), configName); err != nil {
+		log.Println("enricher")
 		log.Fatal(err)
 	}
-	if err = act.Init(filepath.Join("internal", "components", "actor", "configs"), func(s string) string { return s }); err != nil {
+	if err = act.Init(filepath.Join("internal", "components", "actor", "configs"), configName, func(s string) string { return s }); err != nil {
+		log.Println("actor")
 		log.Fatal(err)
 	}
 
 	go func() {
 		http.Handle("/metrics", promhttp.Handler())
-		http.ListenAndServe("bachelor-app:8081", nil)
+		if err := http.ListenAndServe(cfg.GetString("prometheus.host")+":"+cfg.GetString("prometheus.port"),
+			nil); err != nil {
+			log.Println("prometheus")
+			log.Fatal(err)
+		}
 	}()
 
 	ac.SetNext(src).SetNext(fl).SetNext(tf).SetNext(dd).SetNext(enr).SetNext(act)
