@@ -7,7 +7,8 @@
     "transformation_field_1": "transformation_value",
     "transformation_target_field_1": "transformation_value_1",
     "enrichment_field": "enrichment_value_to_change",
-    "deduplication_field" : "deduplication_value"
+    "deduplication_field" : "deduplication_value",
+    "action_field" : "action_value"
   },
   {
     "filtration_field": "filtration_value",

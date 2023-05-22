@@ -21,7 +21,7 @@ type AbstractComponent[T db.Model] struct {
 	Next  IComponent
 	Kafka *kafka.Client
 	Db    *db.Db[T]
-	Rules []*T
+	Rules []T
 	Wg    *sync.WaitGroup
 }
 
@@ -37,9 +37,16 @@ func (ac *AbstractComponent[T]) Init(path string, name string) error {
 	ac.Kafka = &kafka.Client{}
 	ac.Kafka.Init(vp)
 
-	ac.Rules = []*T{}
+	ac.Wg = &sync.WaitGroup{}
 
 	ac.Db = &db.Db[T]{}
+
+	ac.Rules = make([]T, 0)
+
+	if ac.Db, err = ac.Db.Init(vp); err != nil {
+		return err
+	}
+
 	if _, err = ac.Db.GetAll(&ac.Rules); err != nil {
 		return err
 	}
@@ -67,7 +74,10 @@ func (ac *AbstractComponent[T]) RunPipeline() {
 	curr := ac.Next
 	for curr != nil {
 		ac.Wg.Add(1)
-		go curr.Run()
+		go func(wg *sync.WaitGroup, c IComponent) {
+			c.Run()
+			wg.Done()
+		}(ac.Wg, curr)
 		curr = curr.GetNext()
 	}
 	ac.Wg.Wait()

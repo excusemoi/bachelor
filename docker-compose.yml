@@ -70,6 +70,10 @@ services:
       CONFLUENT_SUPPORT_CUSTOMER_ID: 'anonymous'
       KAFKA_JMX_HOSTNAME: "localhost"
       KAFKA_JMX_PORT: 31001
+      KAFKA_LOG_RETENTION_MS: 5000
+      KAFKA_LOG_RETENTION_HOURS: 0
+      KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: 2500
+      KAFKA_LOG_CLEANER_DELETE_RETENTION_MS: 5000
   prometheus:
     image: prom/prometheus:v2.40.4
     networks:

@@ -2,12 +2,13 @@ package kafka
 
 import (
 	"context"
-	"fmt"
+	"log"
+	"sync"
+	"time"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/spf13/viper"
-	"sync"
-	"time"
 )
 
 type Client struct {
@@ -20,7 +21,6 @@ type Client struct {
 func (c *Client) Init(config *viper.Viper) {
 	c.ctx = context.Background()
 	prefix := config.GetString("kafka.metrics.prefix")
-	fmt.Println(config.GetString("kafka.metrics.prefix"))
 
 	if config.Get("kafka.metrics") != nil {
 		c.metrics = &Metrics{
@@ -89,26 +89,21 @@ func (c *Client) HandleEvents(handler func([]byte) ([]byte, error)) {
 		}
 		for i := range c.consumer.group {
 			go func(ind int) {
-				buff := make(chan struct{}, 1000000)
+				buff := make(chan struct{}, 900000)
 				for {
 					message, err := c.consumer.group[ind].FetchMessage(c.ctx)
-
-					fmt.Println("message: ", message)
-
 					if err != nil {
 						wg.Done()
 						return
 					}
 
 					if c.metrics.lag.count {
-						c.metrics.lag.m.Set(float64(c.GetConsumerGroupLag()))
+						lag := float64(c.GetConsumerGroupLag())
+						c.metrics.lag.m.Set(lag)
 					}
 					if c.metrics.latency.count {
 						latency := float64(time.Now().Sub(message.Time).Milliseconds())
-						if latency < 100. {
-							c.metrics.latency.m.Set(latency)
-
-						}
+						c.metrics.latency.m.Set(latency)
 					}
 					if c.metrics.inputMessagesPerSec.count {
 						c.metrics.inputMessagesPerSec.value++
@@ -128,6 +123,9 @@ func (c *Client) HandleEvents(handler func([]byte) ([]byte, error)) {
 									c.metrics.outputMessagesPerSec.m.Set(float64(c.metrics.outputMessagesPerSec.value) /
 										time.Now().Sub(c.metrics.outputMessagesPerSec.start).Seconds())
 								}
+							} else {
+								log.Println(string(message.Value))
+								log.Println(err)
 							}
 							<-buff
 						}()

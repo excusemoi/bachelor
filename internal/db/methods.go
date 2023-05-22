@@ -2,6 +2,8 @@ package db
 
 import (
 	"errors"
+	model2 "github.com/bachelor/internal/model"
+	"reflect"
 	"time"
 )
 
@@ -23,9 +25,10 @@ func (db *Db[T]) GetLatest(model *T) (*T, error) {
 	return model, nil
 }
 
-func (db *Db[T]) GetAll(model *[]*T) (*[]*T, error) {
-	if model != nil && len(*model) != 0 {
-		if err := db.client.Model((*model)[0]).Select(model); err != nil {
+func (db *Db[T]) GetAll(model *[]T) (*[]T, error) {
+	var t T
+	if model != nil && reflect.TypeOf(t) != reflect.TypeOf(model2.AbstractRule{}) {
+		if err := db.client.Model(model).Select(model); err != nil {
 			return nil, err
 		}
 	}

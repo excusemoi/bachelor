@@ -51,7 +51,7 @@ func (g *Generator) Run() error {
 		err      error
 	)
 
-	if dataFile, err = os.Open(filepath.Join("internal", "generator", "data", "data.json")); err != nil {
+	if dataFile, err = os.Open(filepath.Join("..", "data", "data.json")); err != nil {
 		return err
 	}
 
@@ -64,17 +64,18 @@ func (g *Generator) Run() error {
 	}
 
 	for {
-		for i := range messages {
-			message, _ := json.Marshal(messages[i])
-			msgs := make([]kafka.Message, len(g.topics))
-			for j := range g.topics {
-				msgs[j] = kafka.Message{
-					Topic:     g.topics[j],
-					Value:     message,
-					Partition: 0}
+		for {
+			for i := range messages {
+				message, _ := json.Marshal(messages[i])
+				msgs := make([]kafka.Message, len(g.topics))
+				for j := range g.topics {
+					msgs[j] = kafka.Message{
+						Topic:     g.topics[j],
+						Value:     message,
+						Partition: 0}
+				}
+				go g.producer.WriteMessages(g.ctx, msgs...)
 			}
-			g.producer.WriteMessages(g.ctx, msgs...)
 		}
-
 	}
 }
