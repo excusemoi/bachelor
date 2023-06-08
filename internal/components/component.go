@@ -84,7 +84,7 @@ func (ac *AbstractComponent[T]) RunPipeline() {
 }
 
 func (ac *AbstractComponent[T]) Observe() {
-	ac.Db.Observe((*T)(nil))
+	ac.Db.Observe(&ac.Rules)
 }
 
 func (ac *AbstractComponent[T]) SetProducerTopics(topics []string) {

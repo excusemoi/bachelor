@@ -9,6 +9,7 @@ import (
 	"github.com/bachelor/internal/components/source"
 	"github.com/bachelor/internal/components/transformer"
 	"github.com/bachelor/internal/config"
+	"github.com/bachelor/internal/migrations"
 	"github.com/bachelor/internal/model"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/viper"
@@ -40,10 +41,10 @@ func main() {
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	//if err = migrations.Run(); err != nil {
-	//	log.Println("migrations")
-	//	log.Fatal(err)
-	//}
+	if err = migrations.Run(); err != nil {
+		log.Println("migrations")
+		log.Fatal(err)
+	}
 
 	if err = src.Init(filepath.Join("internal", "components", "source", "configs"), configName); err != nil {
 		log.Println("source")

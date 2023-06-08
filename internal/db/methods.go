@@ -7,12 +7,12 @@ import (
 	"time"
 )
 
-func (db *Db[T]) Observe(m *T) {
+func (db *Db[T]) Observe(m *[]T) {
 	select {
 	case <-time.After(10 * time.Second):
 		{
 			db.mx.Lock()
-			m, _ = db.GetLatest(m)
+			m, _ = db.GetAll(m)
 			db.mx.Unlock()
 		}
 	}
